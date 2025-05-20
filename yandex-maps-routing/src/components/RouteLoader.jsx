@@ -24,7 +24,7 @@ function RouteLoader({ onPointsLoaded }) {
           }
 
           if (!point.name){
-            throw new Error(`Точка ${index + 1} должна имететь поле id`);
+            throw new Error(`Точка ${index + 1} должна имететь поле name`);
           }
         });
         
