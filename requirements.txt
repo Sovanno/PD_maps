@@ -1,0 +1,6 @@
+langchain
+langchain-gigachat
+langchain-community
+fastapi
+python-multipart
+uvicorn
