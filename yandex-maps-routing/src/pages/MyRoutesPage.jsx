@@ -1,23 +1,54 @@
-import React from 'react';
-import { Container, Typography, Box, List, ListItem, ListItemText, Button } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { 
+  Container, 
+  Typography, 
+  Box, 
+  List, 
+  ListItem, 
+  ListItemText, 
+  Button,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
+} from '@mui/material';
 import { Link } from 'react-router-dom';
-
-const myRoutes = [
-  {
-    id: 1,
-    name: 'Мой летний маршрут',
-    points: 5,
-    created: '2023-05-15'
-  },
-  {
-    id: 2,
-    name: 'Горный поход',
-    points: 8,
-    created: '2023-06-22'
-  },
-];
+import DeleteIcon from '@mui/icons-material/Delete';
+import { YMaps } from '@pbe/react-yandex-maps';
+import MapComponent from '../components/MapComponent';
 
 function MyRoutesPage() {
+  const [myRoutes, setMyRoutes] = useState([]);
+  const [selectedRoute, setSelectedRoute] = useState(null);
+  const [openDialog, setOpenDialog] = useState(false);
+
+  useEffect(() => {
+    const username = localStorage.getItem('username');
+    if (username) {
+      const routes = JSON.parse(localStorage.getItem(`routes_${username}`) || '[]');
+      setMyRoutes(routes);
+    }
+  }, []);
+
+  const handleDelete = (id) => {
+    const username = localStorage.getItem('username');
+    if (username) {
+      const updatedRoutes = myRoutes.filter(route => route.id !== id);
+      localStorage.setItem(`routes_${username}`, JSON.stringify(updatedRoutes));
+      setMyRoutes(updatedRoutes);
+    }
+  };
+
+  const handleViewRoute = (route) => {
+    setSelectedRoute(route);
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+  };
+
   return (
     <Container maxWidth="lg" sx={{ my: 4 }}>
       <Typography variant="h3" component="h1" gutterBottom>
@@ -42,17 +73,65 @@ function MyRoutesPage() {
       ) : (
         <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
           {myRoutes.map((route) => (
-            <ListItem key={route.id} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <ListItem 
+              key={route.id} 
+              sx={{ borderBottom: 1, borderColor: 'divider' }}
+              secondaryAction={
+                <IconButton 
+                  edge="end" 
+                  onClick={() => handleDelete(route.id)}
+                  color="error"
+                >
+                  <DeleteIcon />
+                </IconButton>
+              }
+            >
               <ListItemText
                 primary={route.name}
-                secondary={`Точек: ${route.points} | Создан: ${route.created}`}
+                secondary={`Точек: ${route.points.length} | Создан: ${route.created}`}
               />
-              <Button variant="outlined" sx={{ mr: 2 }}>Просмотреть</Button>
-              <Button variant="outlined" color="error">Удалить</Button>
+              <Button 
+                variant="outlined" 
+                sx={{ mr: 2 }} 
+                onClick={() => handleViewRoute(route)}
+              >
+                Просмотреть
+              </Button>
             </ListItem>
           ))}
         </List>
       )}
+
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>{selectedRoute?.name}</DialogTitle>
+        <DialogContent>
+          {selectedRoute && (
+            <Box sx={{ mt: 2 }}>
+              <YMaps query={{ apikey: '6d5bfb69-89f0-46e7-b335-0ebd68b143d3', load: 'package.full' }}>
+                <MapComponent points={selectedRoute.points} />
+              </YMaps>
+              <List sx={{ mt: 2 }}>
+                {selectedRoute.points.map((point, index) => (
+                  <ListItem key={index}>
+                    <ListItemText 
+                      primary={`${index + 1}. ${point.name}`} 
+                      secondary={point.description || point.address} 
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Закрыть</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
