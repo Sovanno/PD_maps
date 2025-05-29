@@ -1,4 +1,3 @@
-// Models/
 namespace TourRoutesApp.Models
 {
     using System.ComponentModel.DataAnnotations;

@@ -1,5 +1,3 @@
-
-// Models/Route.cs
 namespace TourRoutesApp.Models
 {
     using System;
