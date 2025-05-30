@@ -1,5 +1,4 @@
-import React from 'react';
-import { Container, Typography, Box, Grid, Card, CardMedia, CardContent, CardActions, Button } from '@mui/material';
+import { Container, Typography, Grid, Card, CardMedia, CardContent, CardActions, Button } from '@mui/material';
 
 const routes = [
   {

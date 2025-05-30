@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Container, 
   Typography, 
@@ -9,7 +9,6 @@ import {
   List, 
   ListItem, 
   ListItemText, 
-  IconButton,
   CircularProgress,
   Stepper,
   Step,
@@ -20,8 +19,6 @@ import {
   DialogContent,
   DialogActions
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { YMaps } from '@pbe/react-yandex-maps';
 import MapComponent from '../components/MapComponent';
 import { useNavigate } from 'react-router-dom';
@@ -37,7 +34,6 @@ function RouteBuilderPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
-  const [generatedRoute, setGeneratedRoute] = useState(null);
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem('user'));
@@ -58,8 +54,6 @@ function RouteBuilderPage() {
     setError(null);
 
     try {
-      // Здесь должен быть запрос к вашему Python API для генерации маршрута
-      // Временно используем mock данные
       const mockResponse = [
         {
           name: "Музей изобразительных искусств",
@@ -78,7 +72,6 @@ function RouteBuilderPage() {
         }
       ];
 
-      // Имитация задержки сети
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       setPoints(mockResponse.map((point, index) => ({

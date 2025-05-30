@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, Container, Typography, Button, Paper } from '@mui/material';
 import { Link } from 'react-router-dom';
 import HikingIcon from '@mui/icons-material/Hiking';

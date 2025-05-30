@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { Map, ZoomControl, useYMaps } from '@pbe/react-yandex-maps';
 import { geocodeAddress } from '../utils/geocode'
 

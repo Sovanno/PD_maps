@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 function RouteLoader({ onPointsLoaded }) {
   const [error, setError] = useState(null);
@@ -17,7 +17,6 @@ function RouteLoader({ onPointsLoaded }) {
           throw new Error("Данные должны быть массивом");
         }
         
-        // Проверка каждой точки на наличие необходимых полей
         points.forEach((point, index) => {
           if (!point.address) {
             throw new Error(`Точка ${index + 1} имеет некорректный формат адреса`);
