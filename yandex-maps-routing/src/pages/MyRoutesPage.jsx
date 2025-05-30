@@ -11,7 +11,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  CircularProgress 
 } from '@mui/material';
 import { Link } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -19,17 +20,52 @@ import { YMaps } from '@pbe/react-yandex-maps';
 import MapComponent from '../components/MapComponent';
 
 function MyRoutesPage() {
+  const [user] = useState(JSON.parse(localStorage.getItem('user')));
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [myRoutes, setMyRoutes] = useState([]);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
 
   useEffect(() => {
-    const username = localStorage.getItem('username');
-    if (username) {
-      const routes = JSON.parse(localStorage.getItem(`routes_${username}`) || '[]');
-      setMyRoutes(routes);
-    }
-  }, []);
+    const fetchRoutes = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        const response = await fetch(`http://localhost:5153/api/routes/${user.userId}`);
+        
+        if (!response.ok) {
+          throw new Error('Ошибка при загрузке маршрутов');
+        }
+        
+        const routes = await response.json();
+        setMyRoutes(routes);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRoutes();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ my: 4, textAlign: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ my: 4, textAlign: 'center' }}>
+        <Typography color="error">{error}</Typography>
+      </Container>
+    );
+  }
 
   const handleDelete = (id) => {
     const username = localStorage.getItem('username');

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Container, 
   Typography, 
@@ -9,14 +9,22 @@ import {
   List, 
   ListItem, 
   ListItemText, 
+  IconButton,
   CircularProgress,
   Stepper,
   Step,
   StepLabel,
-  Alert
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { YMaps } from '@pbe/react-yandex-maps';
 import MapComponent from '../components/MapComponent';
+import { useNavigate } from 'react-router-dom';
 
 const steps = ['Ввод параметров', 'Построение маршрута', 'Просмотр результата'];
 
@@ -28,6 +36,17 @@ function RouteBuilderPage() {
   const [interests, setInterests] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [generatedRoute, setGeneratedRoute] = useState(null);
+  const navigate = useNavigate();
+
+  const user = JSON.parse(localStorage.getItem('user'));
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   const handleGenerateRoute = async () => {
     if (!city.trim() || !interests.trim()) {
@@ -39,56 +58,81 @@ function RouteBuilderPage() {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/ask', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+      // Здесь должен быть запрос к вашему Python API для генерации маршрута
+      // Временно используем mock данные
+      const mockResponse = [
+        {
+          name: "Музей изобразительных искусств",
+          address: "ул. Ленина, 5",
+          description: "Крупнейший художественный музей города"
         },
-        body: new URLSearchParams({
-          city: city,
-          wishes: interests,
-          objects_count: 5
-        })
-      });
+        {
+          name: "Центральный парк",
+          address: "ул. Парковая, 1",
+          description: "Живописный парк с озерами и аллеями"
+        },
+        {
+          name: "Исторический центр",
+          address: "пл. Революции",
+          description: "Старинная архитектура и памятники"
+        }
+      ];
 
-      if (!response.ok) {
-        throw new Error('Ошибка при запросе к серверу');
-      }
-
-      const data = await response.json();
-      const parsedPoints = JSON.parse(data.answer);
+      // Имитация задержки сети
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      if (!Array.isArray(parsedPoints)) {
-        throw new Error('Некорректный формат ответа от сервера');
-      }
-
-      setPoints(parsedPoints);
+      setPoints(mockResponse.map((point, index) => ({
+        id: Date.now() + index,
+        ...point
+      })));
       setActiveStep(1);
     } catch (err) {
-      setError(`Ошибка: ${err.message}`);
+      setError(`Ошибка при генерации маршрута: ${err.message}`);
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveRoute = () => {
-    if (routeName.trim() && points.length > 0) {
-      const username = localStorage.getItem('username');
-      if (username) {
-        const userRoutes = JSON.parse(localStorage.getItem(`routes_${username}`) || '[]');
-        const newRoute = {
-          id: Date.now(),
-          name: routeName,
-          points: points,
-          created: new Date().toISOString().split('T')[0]
-        };
-        localStorage.setItem(`routes_${username}`, JSON.stringify([...userRoutes, newRoute]));
-        alert(`Маршрут "${routeName}" сохранен!`);
-        setActiveStep(2);
-      } else {
-        setError('Для сохранения маршрута необходимо войти в систему');
+  const handleSaveRoute = async () => {
+    if (!routeName.trim() || points.length < 2) {
+      setError('Название маршрута и минимум 2 точки обязательны');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('http://localhost:5153/api/routes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.userId,
+          points: points.map((point, index) => ({
+            name: point.name,
+            address: point.address,
+            description: point.description || '',
+            order: index + 1
+          }))
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка при сохранении маршрута');
       }
+
+      const savedRoute = await response.json();
+      setGeneratedRoute(savedRoute);
+      setSuccessDialogOpen(true);
+      setActiveStep(2);
+    } catch (err) {
+      setError(`Ошибка: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -99,6 +143,11 @@ function RouteBuilderPage() {
     setInterests('');
     setPoints([]);
     setError(null);
+  };
+
+  const handleCloseSuccessDialog = () => {
+    setSuccessDialogOpen(false);
+    navigate('/my-routes');
   };
 
   return (
@@ -128,6 +177,7 @@ function RouteBuilderPage() {
             value={city}
             onChange={(e) => setCity(e.target.value)}
             sx={{ mb: 3 }}
+            required
           />
 
           <TextField
@@ -139,6 +189,7 @@ function RouteBuilderPage() {
             multiline
             rows={4}
             sx={{ mb: 3 }}
+            required
           />
 
           {error && (
@@ -161,7 +212,7 @@ function RouteBuilderPage() {
       )}
 
       {activeStep === 1 && (
-        <Box sx={{ display: 'flex', gap: 4 }}>
+        <Box sx={{ display: 'flex', gap: 4, flexDirection: { xs: 'column', md: 'row' } }}>
           <Box sx={{ flex: 1 }}>
             <TextField
               fullWidth
@@ -170,6 +221,7 @@ function RouteBuilderPage() {
               value={routeName}
               onChange={(e) => setRouteName(e.target.value)}
               sx={{ mb: 3 }}
+              required
             />
 
             <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
@@ -184,7 +236,12 @@ function RouteBuilderPage() {
                     <ListItem key={point.id || index}>
                       <ListItemText 
                         primary={`${index + 1}. ${point.name}`} 
-                        secondary={point.description || point.address} 
+                        secondary={
+                          <>
+                            <div>{point.address}</div>
+                            {point.description && <div>{point.description}</div>}
+                          </>
+                        } 
                       />
                     </ListItem>
                   ))}
@@ -197,6 +254,7 @@ function RouteBuilderPage() {
                 variant="outlined"
                 onClick={handleReset}
                 fullWidth
+                disabled={loading}
               >
                 Начать заново
               </Button>
@@ -205,14 +263,14 @@ function RouteBuilderPage() {
                 color="secondary"
                 onClick={handleSaveRoute}
                 fullWidth
-                disabled={!routeName.trim()}
+                disabled={!routeName.trim() || loading}
               >
-                Сохранить маршрут
+                {loading ? <CircularProgress size={24} /> : 'Сохранить маршрут'}
               </Button>
             </Box>
           </Box>
 
-          <Box sx={{ flex: 1 }}>
+          <Box sx={{ flex: 1, minHeight: 400 }}>
             <YMaps query={{ apikey: '6d5bfb69-89f0-46e7-b335-0ebd68b143d3', load: 'package.full' }}>
               <MapComponent points={points} />
             </YMaps>
@@ -238,6 +296,23 @@ function RouteBuilderPage() {
           </Button>
         </Box>
       )}
+
+      <Dialog open={successDialogOpen} onClose={handleCloseSuccessDialog}>
+        <DialogTitle>Маршрут сохранен</DialogTitle>
+        <DialogContent>
+          <Typography>Маршрут "{routeName}" был успешно сохранен в вашей коллекции.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseSuccessDialog}>Закрыть</Button>
+          <Button 
+            onClick={handleCloseSuccessDialog}
+            color="primary"
+            variant="contained"
+          >
+            Перейти к моим маршрутам
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
